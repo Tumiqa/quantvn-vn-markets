@@ -1,65 +1,56 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  STATISTICAL ARBITRAGE — PAIRS TRADING STRATEGY (Crypto)                    ║
-║  Giao dich Chênh lệch Thống kê theo Cặp trên thị trường Crypto             ║
+║  STATISTICAL ARBITRAGE — MEAN REVERSION STRATEGY (Crypto)                   ║
+║  Chien luoc Hoi quy Trung binh dua tren Thong ke                            ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 ═══════════════════════════════════════════════════════════════════════════════
-TỔNG QUAN CHIẾN LƯỢC
+TONG QUAN CHIEN LUOC
 ═══════════════════════════════════════════════════════════════════════════════
 
-Pairs Trading (Giao dịch theo cặp) là chiến lược MARKET-NEUTRAL:
-  - Tìm 2 tài sản có mối quan hệ đồng liên kết (cointegration)
-  - Tính SPREAD = Price_1 - HedgeRatio × Price_2
-  - Khi spread lệch xa trung bình → mở ĐỒNG THỜI 2 vị thế ĐỐI NGƯỢC:
-      + Long tài sản rẻ hơn (undervalued)
-      + Short tài sản đắt hơn (overvalued)
-  - Khi spread hồi quy về trung bình → đóng cả 2 → chốt lời
+Chien luoc nay ap dung cac cong cu toan hoc tu Statistical Arbitrage (StatArb)
+vao giao dich single-asset cryptocurrency.
 
-Ưu điểm:
-  - Market-neutral: KHÔNG PHỤ THUỘC thị trường tăng hay giảm
-  - Lợi nhuận đến từ SPREAD (chênh lệch), không phải giá tuyệt đối
-  - Giảm rủi ro hệ thống (systematic risk) vì 2 vị thế đối ngược
+Nguyen ly Mean Reversion: Gia tai san co xu huong dao dong quanh gia tri
+trung binh. Khi gia lech qua xa khoi trung binh (do bang Z-Score), ta ky
+vong gia se quay ve → tao co hoi giao dich.
 
-═══════════════════════════════════════════════════════════════════════════════
-NỀN TẢNG TOÁN HỌC
-═══════════════════════════════════════════════════════════════════════════════
+Pipeline xu ly:
+  1. Tinh Z-Score = (Close - SMA) / StdDev → do do lech gia
+  2. Kiem tra tinh chat mean-reverting bang Hurst Exponent (H < 0.5)
+  3. Uoc tinh thoi gian hoi quy bang Half-Life (Ornstein-Uhlenbeck)
+  4. Ket hop SMA trend filter + RSI lam bo loc xac nhan
+  5. State Machine: vao lenh khi Z-Score vuot nguong, thoat khi Z ve 0
 
-1. Cointegration (Engle-Granger Test):
-   Kiểm tra xem 2 chuỗi giá có mối quan hệ dài hạn ổn định không.
-   H0: Không cointegrated. Nếu p-value < 0.05 → bác bỏ H0 → cointegrated.
-
-2. Hedge Ratio (OLS Regression):
-   series_1 = β × series_2 + ε
-   β (hedge ratio) cho biết cần bao nhiêu đơn vị sym_2 để hedge 1 đơn vị sym_1.
-
-3. Spread:
-   spread = series_1 - hedge_ratio × series_2
-   Spread phải stationary (dao động quanh mean) nếu 2 chuỗi cointegrated.
-
-4. Z-Score (Rolling):
-   Z = (spread - mean_spread) / std_spread
-   |Z| > threshold → spread lệch xa → cơ hội giao dịch
-
-5. Half-Life (Ornstein-Uhlenbeck):
-   t½ = -ln(2) / γ — ước tính bao lâu spread hồi quy 50% về mean
-
-6. Hurst Exponent (R/S Analysis):
-   H < 0.5 → spread mean-reverting (tốt!)
-   H > 0.5 → spread trending (xấu!)
+Tin hieu giao dich:
+  signal =  1 (MUA):   Z < -threshold AND uptrend AND RSI < oversold
+  signal = -1 (BAN):   Z > +threshold AND downtrend AND RSI > overbought
+  signal =  0 (NEUTRAL): Z gan 0 hoac khong co dieu kien phu hop
 
 ═══════════════════════════════════════════════════════════════════════════════
-TÍN HIỆU GIAO DỊCH
+NEN TANG TOAN HOC (port tu du an StatArb Bybit)
 ═══════════════════════════════════════════════════════════════════════════════
 
-signal =  1 (LONG SPREAD):   Z < -threshold → spread quá thấp
-  → LONG sym_1 + SHORT sym_2 (kỳ vọng spread TĂNG về mean)
+1. Z-Score (Rolling):
+   Z = (x - mu_rolling) / sigma_rolling
+   Do do lech gia hien tai so voi trung binh truot. |Z| > 1.5 la tin hieu.
 
-signal = -1 (SHORT SPREAD):  Z > +threshold → spread quá cao
-  → SHORT sym_1 + LONG sym_2 (kỳ vọng spread GIẢM về mean)
+2. Hurst Exponent (R/S Analysis tren log returns):
+   H < 0.5 → Mean-reverting (tot cho chien luoc nay)
+   H = 0.5 → Random walk
+   H > 0.5 → Trending (khong phu hop)
 
-signal =  0 (ĐÓNG VỊ THẾ):  Z crosses 0 → spread đã hồi quy
-  → Đóng cả 2 vị thế → chốt lời
+3. Half-Life (Ornstein-Uhlenbeck tren deviation tu mean):
+   t1/2 = -ln(2) / gamma
+   Cho biet trung binh bao nhieu nen de gia hoi quy 50% ve trung binh.
+
+4. RSI (Relative Strength Index):
+   RSI < 30 → Qua ban (oversold) → co hoi mua
+   RSI > 70 → Qua mua (overbought) → co hoi ban
+
+5. SMA Trend Filter (Golden Cross / Death Cross):
+   SMA50 > SMA200 → Uptrend → chi cho phep LONG
+   SMA50 < SMA200 → Downtrend → chi cho phep SHORT
 
 ═══════════════════════════════════════════════════════════════════════════════
 """
@@ -69,110 +60,52 @@ import pandas as pd
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# CẤU HÌNH CẶP GIAO DỊCH
-# ═══════════════════════════════════════════════════════════════════════════
-# Cap mac dinh: TRXUSDT / BNBUSDT
-# Chon tu ket qua scan cointegration: p-value = 0.0004 (cuc manh)
-# Tren platform quantvn.com: CHON "TRXUSDT" tu dropdown "Ma tai san"
-# BNBUSDT se duoc load tu dong ben trong gen_position()
-PAIRED_SYMBOL = "BNBUSDT"
-PAIRED_INTERVAL = "1h"
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# PHẦN 1: CÁC HÀM TÍNH TOÁN THỐNG KÊ
-# (Port trực tiếp từ dự án StatArb Bybit — func_cointegration.py)
+# PHAN 1: CAC HAM TINH TOAN THONG KE
+# (Port tu du an StatArb Bybit — func_cointegration.py)
 # ═══════════════════════════════════════════════════════════════════════════
 
-def calculate_zscore(spread, window=21):
+def calculate_zscore(series, window=21):
     """
-    Tính Z-Score của SPREAD (không phải giá riêng lẻ).
-
-    Z = (spread - rolling_mean) / rolling_std
-
-    Trong pairs trading, Z-Score đo độ lệch của spread so với trung bình.
-    Đây là tín hiệu chính để vào/ra lệnh.
+    Tinh Z-Score theo rolling window.
+    Z = (x - mu) / sigma
+    Do do lech gia hien tai so voi trung binh truot.
     """
-    df = pd.DataFrame(spread, columns=["spread"])
-    mean = df.rolling(center=False, window=window).mean()
-    std = df.rolling(center=False, window=window).std()
-    std = std.replace(0, np.nan)
-    zscore = (df - mean) / std
-    return zscore["spread"].values
+    rolling_mean = series.rolling(window=window, center=False).mean()
+    rolling_std = series.rolling(window=window, center=False).std()
+    rolling_std = rolling_std.replace(0, np.nan)
+    return (series - rolling_mean) / rolling_std
 
 
-def calculate_spread(series_1, series_2, hedge_ratio):
+def calculate_rsi(close, period=14):
     """
-    Tính Spread giữa 2 chuỗi giá.
-
-    spread = series_1 - hedge_ratio × series_2
-
-    Nếu 2 chuỗi cointegrated, spread sẽ STATIONARY (dao động quanh mean).
+    Tinh RSI (Relative Strength Index) theo cong thuc Wilder.
+    RSI < 30 → qua ban, RSI > 70 → qua mua.
     """
-    return np.array(series_1) - hedge_ratio * np.array(series_2)
+    delta = close.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
+    avg_loss = loss.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    return 100 - (100 / (1 + rs))
 
 
-def calculate_hedge_ratio(series_1, series_2):
+def calculate_half_life(series, window=21):
     """
-    Tính Hedge Ratio bằng OLS Regression.
+    Tinh Half-Life bang mo hinh Ornstein-Uhlenbeck.
+    Tinh tren DEVIATION tu rolling mean (stationary).
+    half_life = -ln(2) / gamma
 
-    Model: series_1 = β × series_2 + α + ε
-    β (hedge ratio) = số đơn vị sym_2 cần để hedge 1 đơn vị sym_1
-
-    Sử dụng numpy least squares thay vì statsmodels (giảm dependency).
+    Port tu StatArb Bybit (func_cointegration.py).
     """
-    y = np.array(series_1, dtype=float)
-    x = np.array(series_2, dtype=float)
-    X = np.column_stack([x, np.ones(len(x))])  # Thêm intercept
-    try:
-        coeffs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
-        return coeffs[0]  # hedge_ratio = β
-    except Exception:
-        return 1.0
-
-
-def test_cointegration(series_1, series_2):
-    """
-    Kiểm tra Cointegration bằng Engle-Granger test.
-
-    Bước 1: Hồi quy OLS → tìm hedge_ratio
-    Bước 2: Tính residuals (spread)
-    Bước 3: ADF test trên residuals
-
-    Nếu ADF p-value < 0.05 → residuals stationary → cointegrated.
-
-    Sử dụng statsmodels nếu có, fallback sang phương pháp đơn giản nếu không.
-
-    Returns:
-        (is_cointegrated, p_value, hedge_ratio)
-    """
-    try:
-        from statsmodels.tsa.stattools import coint
-        score, p_value, _ = coint(series_1, series_2)
-        hedge_ratio = calculate_hedge_ratio(series_1, series_2)
-        return p_value < 0.05, round(p_value, 6), round(hedge_ratio, 4)
-    except ImportError:
-        # Fallback: tính hedge_ratio bằng OLS, giả sử cointegrated
-        hedge_ratio = calculate_hedge_ratio(series_1, series_2)
-        return True, 0.01, round(hedge_ratio, 4)
-
-
-def calculate_half_life(spread):
-    """
-    Tính Half-Life của spread bằng mô hình Ornstein-Uhlenbeck.
-
-    Δspread = γ × spread_lag + α + ε
-    half_life = -ln(2) / γ
-
-    Port trực tiếp từ StatArb Bybit (func_cointegration.py line 32-45).
-    """
-    spread = np.array(spread, dtype=float)
-    spread = spread[~np.isnan(spread)]
-    if len(spread) < 20:
+    rolling_mean = series.rolling(window=window).mean()
+    deviation = (series - rolling_mean).dropna()
+    values = np.array(deviation, dtype=float)
+    if len(values) < 20:
         return 999.0
 
-    spread_lag = spread[:-1]
-    spread_diff = np.diff(spread)
+    spread_lag = values[:-1]
+    spread_diff = np.diff(values)
     X = np.column_stack([np.ones(len(spread_lag)), spread_lag])
 
     try:
@@ -185,18 +118,23 @@ def calculate_half_life(spread):
         return 999.0
 
 
-def calculate_hurst_exponent(spread):
+def calculate_hurst_exponent(series, min_chunk_size=10):
     """
-    Tính Hurst Exponent của SPREAD bằng R/S Analysis.
+    Tinh Hurst Exponent bang R/S Analysis tren LOG RETURNS.
+    Phai tinh tren returns (stationary), KHONG tinh tren raw price.
 
-    LƯU Ý: Tính trên SPREAD (đã stationary), KHÔNG phải raw price.
-    Spread giữa 2 chuỗi cointegrated đã stationary → Hurst có ý nghĩa.
+    H < 0.5 → Mean-reverting
+    H = 0.5 → Random walk
+    H > 0.5 → Trending
 
-    Port trực tiếp từ StatArb Bybit (func_cointegration.py line 52-89).
+    Port tu StatArb Bybit (func_cointegration.py).
     """
-    spread = np.array(spread, dtype=float)
-    spread = spread[~np.isnan(spread)]
-    n = len(spread)
+    prices = np.array(series.dropna(), dtype=float)
+    prices = prices[prices > 0]
+    if len(prices) < 30:
+        return 0.5
+    log_returns = np.diff(np.log(prices))
+    n = len(log_returns)
     if n < 20:
         return 0.5
 
@@ -204,13 +142,13 @@ def calculate_hurst_exponent(spread):
     sizes = []
     rs_values = []
 
-    for k in range(10, max_k + 1, 2):
+    for k in range(min_chunk_size, max_k + 1, 2):
         num_chunks = n // k
         if num_chunks < 1:
             continue
         rs_list = []
         for i in range(num_chunks):
-            chunk = spread[i * k:(i + 1) * k]
+            chunk = log_returns[i * k:(i + 1) * k]
             mean_chunk = np.mean(chunk)
             deviations = chunk - mean_chunk
             cumulative = np.cumsum(deviations)
@@ -233,208 +171,145 @@ def calculate_hurst_exponent(spread):
         return 0.5
 
 
-def count_zero_crossings(zscore_array):
-    """Dem so lan Z-Score cat qua 0 (zero crossings)."""
-    z = np.array(zscore_array)
-    z = z[~np.isnan(z)]
-    if len(z) < 2:
-        return 0
-    signs = np.sign(z)
-    crossings = np.sum(np.abs(np.diff(signs)) > 0)
-    return int(crossings)
-
-
 # ═══════════════════════════════════════════════════════════════════════════
-# PHẦN 2: HÀM CHIẾN LƯỢC CHÍNH
+# PHAN 2: HAM CHIEN LUOC CHINH
 # ═══════════════════════════════════════════════════════════════════════════
 
 def gen_position(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Pairs Trading Strategy — Giao dich theo cap (Statistical Arbitrage).
+    Mean-Reversion Strategy voi Trend Filter.
 
-    ┌────────────────────────────────────────────────────────────────────┐
-    │  PIPELINE PAIRS TRADING                                           │
-    │                                                                    │
-    │  Bước 1: Tải dữ liệu tài sản thứ 2 (paired asset)               │
-    │  Bước 2: Tính Hedge Ratio (OLS) + kiểm tra Cointegration         │
-    │  Bước 3: Tính Spread = Close_1 - β × Close_2                     │
-    │  Bước 4: Tính Z-Score của Spread                                  │
-    │  Bước 5: Sinh tín hiệu theo State Machine:                       │
-    │    ├── Z < -threshold → signal=1  (LONG spread)                   │
-    │    │   = LONG sym_1 + SHORT sym_2                                 │
-    │    ├── Z > +threshold → signal=-1 (SHORT spread)                  │
-    │    │   = SHORT sym_1 + LONG sym_2                                 │
-    │    └── Z crosses 0   → signal=0  (ĐÓNG cả 2 vị thế)             │
-    │  Bước 6: Validate: Half-Life, Hurst, Zero Crossings              │
-    └────────────────────────────────────────────────────────────────────┘
+    Pipeline:
+      1. Tinh Z-Score (rolling 21 nen) → do do lech gia
+      2. Tinh RSI (14 nen) → xac nhan qua mua/qua ban
+      3. Tinh SMA50 vs SMA200 → xac dinh xu huong (trend filter)
+      4. Tinh Hurst + Half-Life → danh gia chat luong mean-reversion
+      5. State Machine → sinh tin hieu {1, -1, 0}
+
+    Quy tac giao dich:
+      MUA (signal=1):  Z < -1.5 AND RSI < 35 AND uptrend (SMA50 > SMA200)
+      BAN (signal=-1): Z > +1.5 AND RSI > 65 AND downtrend (SMA50 < SMA200)
+      THOAT (signal=0): |Z| < 0.3 (spread da hoi quy ve mean)
 
     Args:
-        df: DataFrame cua sym_1 voi cot [Date, time, Open, High, Low, Close, volume]
+        df: DataFrame voi cot [Date, time, Open, High, Low, Close, volume]
 
     Returns:
-        df + cac cot: spread, z_score, hedge_ratio, signal
+        df + cac cot: z_score, rsi_14, signal
     """
     # ──────────────────────────────────────────────────────────────────
-    # CẤU HÌNH
+    # CAU HINH THAM SO
     # ──────────────────────────────────────────────────────────────────
-    Z_SCORE_WINDOW = 21        # Rolling window cho Z-Score
-    ENTRY_THRESHOLD = 1.1      # |Z| > 1.1 → vào lệnh (giống StatArb Bybit)
-    EXIT_THRESHOLD = 0.0       # Z crosses 0 → thoát (mean reverted)
-    STOPLOSS_Z = 4.0           # |Z| > 4.0 → cắt lỗ (spread diverge quá xa)
-
-    # ──────────────────────────────────────────────────────────────────
-    # BƯỚC 1: TẢI DỮ LIỆU TÀI SẢN THỨ 2
-    # ──────────────────────────────────────────────────────────────────
-    from quantvn.crypto.data import get_crypto_hist
-
-    print(f"  [PAIRS] Tai du lieu paired asset: {PAIRED_SYMBOL}...")
-    df_pair = get_crypto_hist(PAIRED_SYMBOL, interval=PAIRED_INTERVAL)
-
-    if df_pair is None or df_pair.empty:
-        print(f"  [ERROR] Khong tai duoc du lieu cho {PAIRED_SYMBOL}")
-        df["signal"] = 0
-        return df
+    Z_WINDOW = 21           # Rolling window cho Z-Score
+    RSI_PERIOD = 14         # Chu ky RSI
+    ENTRY_Z = 1.5           # |Z| > 1.5 → vao lenh
+    EXIT_Z = 0.3            # |Z| < 0.3 → thoat lenh (mean reverted)
+    STOPLOSS_Z = 3.5        # |Z| > 3.5 → cat lo
+    RSI_OVERSOLD = 35       # RSI < 35 → xac nhan qua ban
+    RSI_OVERBOUGHT = 65     # RSI > 65 → xac nhan qua mua
+    SMA_FAST = 50           # SMA nhanh
+    SMA_SLOW = 200          # SMA cham
 
     # ──────────────────────────────────────────────────────────────────
-    # BƯỚC 2: ALIGN dữ liệu 2 symbols theo thời gian
+    # BUOC 1: TINH TOAN CHI BAO
     # ──────────────────────────────────────────────────────────────────
-    # Tạo key thời gian chung để merge
-    df["_dt_key"] = df["Date"].astype(str) + " " + df["time"].astype(str)
-    df_pair["_dt_key"] = df_pair["Date"].astype(str) + " " + df_pair["time"].astype(str)
 
-    # Merge theo thời gian — chỉ giữ các nến mà CẢ HAI đều có dữ liệu
-    merged = df.merge(
-        df_pair[["_dt_key", "Close"]].rename(columns={"Close": "close_2"}),
-        on="_dt_key",
-        how="inner"
-    )
+    # Z-Score: chi bao chinh
+    df["z_score"] = calculate_zscore(df["Close"], window=Z_WINDOW)
 
-    close_1 = merged["Close"].values.astype(float)
-    close_2 = merged["close_2"].values.astype(float)
+    # RSI: bo loc xac nhan
+    df["rsi_14"] = calculate_rsi(df["Close"], period=RSI_PERIOD)
 
-    print(f"  [PAIRS] Da align {len(merged)} nen chung")
+    # Trend Filter: SMA50 vs SMA200 (Golden Cross / Death Cross)
+    df["sma_fast"] = df["Close"].rolling(window=SMA_FAST).mean()
+    df["sma_slow"] = df["Close"].rolling(window=SMA_SLOW).mean()
+    df["is_uptrend"] = (df["sma_fast"] > df["sma_slow"]).astype(int)
 
-    # ──────────────────────────────────────────────────────────────────
-    # BƯỚC 3: COINTEGRATION TEST + HEDGE RATIO
-    # ──────────────────────────────────────────────────────────────────
-    is_coint, p_value, hedge_ratio = test_cointegration(close_1, close_2)
-    print(f"  [PAIRS] Cointegration p-value: {p_value}")
-    print(f"  [PAIRS] Hedge Ratio (beta): {hedge_ratio}")
-    print(f"  [PAIRS] Cointegrated: {'YES' if is_coint else 'NO'}")
+    # Hurst Exponent (diagnostic — tinh 1 lan)
+    hurst = calculate_hurst_exponent(df["Close"])
+    df["hurst"] = hurst
+
+    # Half-Life (diagnostic — tinh 1 lan)
+    half_life = calculate_half_life(df["Close"], window=Z_WINDOW)
+    df["half_life"] = half_life
 
     # ──────────────────────────────────────────────────────────────────
-    # BƯỚC 4: TÍNH SPREAD + Z-SCORE
-    # ──────────────────────────────────────────────────────────────────
-    spread = calculate_spread(close_1, close_2, hedge_ratio)
-    zscore = calculate_zscore(spread, window=Z_SCORE_WINDOW)
-
-    # Ghi các cột kết quả vào merged DataFrame
-    merged["spread"] = spread
-    merged["z_score"] = zscore
-    merged["hedge_ratio"] = hedge_ratio
-
-    # ──────────────────────────────────────────────────────────────────
-    # BƯỚC 5: VALIDATE CHẤT LƯỢNG CẶP
-    # ──────────────────────────────────────────────────────────────────
-    half_life = calculate_half_life(spread)
-    hurst = calculate_hurst_exponent(spread)
-    zero_cross = count_zero_crossings(zscore)
-
-    merged["half_life"] = half_life
-    merged["hurst"] = hurst
-
-    print(f"  [PAIRS] Half-Life: {half_life} nen")
-    print(f"  [PAIRS] Hurst Exponent: {hurst}")
-    print(f"  [PAIRS] Zero Crossings: {zero_cross}")
-
-    # ──────────────────────────────────────────────────────────────────
-    # BƯỚC 6: SINH TÍN HIỆU (State Machine — giống StatArb Bybit)
+    # BUOC 2: SINH TIN HIEU (State Machine + Trend Filter)
     # ──────────────────────────────────────────────────────────────────
     #
-    # State Machine (máy trạng thái) — port từ bot Bybit thực tế:
+    # State Machine (may trang thai) — port tu bot StatArb Bybit:
     #
-    #   Trạng thái:
-    #     0 = NEUTRAL (không có vị thế)
-    #     1 = LONG SPREAD  (long sym_1 + short sym_2)
-    #    -1 = SHORT SPREAD (short sym_1 + long sym_2)
+    #   Trang thai:
+    #     0 = NEUTRAL (khong co vi the)
+    #     1 = LONG    (dang giu vi the mua)
+    #    -1 = SHORT   (dang giu vi the ban)
     #
-    #   Chuyển trạng thái (giống hệt logic execution/bot.py):
-    #     NEUTRAL → LONG:   Z < -entry_thresh (spread quá thấp)
-    #     NEUTRAL → SHORT:  Z > +entry_thresh (spread quá cao)
-    #     LONG → NEUTRAL:   Z >= 0 (spread hồi quy) HOẶC Z < -stoploss
-    #     SHORT → NEUTRAL:  Z <= 0 (spread hồi quy) HOẶC Z > +stoploss
+    #   Chuyen trang thai:
+    #     NEUTRAL → LONG:   Z < -entry AND RSI < oversold AND uptrend
+    #     NEUTRAL → SHORT:  Z > +entry AND RSI > overbought AND downtrend
+    #     LONG → NEUTRAL:   Z > -exit (mean reverted) HOAC Z > stoploss
+    #     SHORT → NEUTRAL:  Z < +exit (mean reverted) HOAC Z < -stoploss
+    #
+    #   Trend Filter ngan giao dich nguoc xu huong:
+    #     Chi LONG khi uptrend (SMA50 > SMA200) → mua day trong xu huong tang
+    #     Chi SHORT khi downtrend (SMA50 < SMA200) → ban dinh trong xu huong giam
 
-    n = len(merged)
+    z_vals = df["z_score"].values
+    rsi_vals = df["rsi_14"].values
+    trend_vals = df["is_uptrend"].values
+    n = len(df)
+
     signals = np.zeros(n, dtype=int)
-    state = 0  # Bắt đầu NEUTRAL
+    state = 0  # Bat dau NEUTRAL
 
     for i in range(n):
-        z = zscore[i]
-        if np.isnan(z):
+        z = z_vals[i]
+        rsi = rsi_vals[i]
+        up = trend_vals[i]
+
+        if np.isnan(z) or np.isnan(rsi) or np.isnan(up):
             signals[i] = 0
             continue
 
         if state == 0:
-            # ── NEUTRAL: Tìm cơ hội ──
-            if z < -ENTRY_THRESHOLD:
-                # Spread quá thấp → LONG spread (long sym_1 + short sym_2)
+            # NEUTRAL: tim co hoi vao lenh
+            if z < -ENTRY_Z and rsi < RSI_OVERSOLD and up:
                 state = 1
                 signals[i] = 1
-            elif z > ENTRY_THRESHOLD:
-                # Spread quá cao → SHORT spread (short sym_1 + long sym_2)
+            elif z > ENTRY_Z and rsi > RSI_OVERBOUGHT and not up:
                 state = -1
                 signals[i] = -1
             else:
                 signals[i] = 0
 
         elif state == 1:
-            # ── LONG SPREAD: Chờ mean-revert ──
-            if z >= EXIT_THRESHOLD:
-                # Spread đã hồi quy về mean → ĐÓNG VỊ THẾ (chốt lời)
+            # LONG: kiem tra thoat
+            if z > STOPLOSS_Z:
                 state = 0
                 signals[i] = 0
-            elif z < -STOPLOSS_Z:
-                # Spread tiếp tục diverge → CẮT LỖ
+            elif z > -EXIT_Z:
                 state = 0
                 signals[i] = 0
             else:
-                signals[i] = 1  # Giữ vị thế
+                signals[i] = 1
 
         elif state == -1:
-            # ── SHORT SPREAD: Chờ mean-revert ──
-            if z <= EXIT_THRESHOLD:
-                # Spread đã hồi quy về mean → ĐÓNG VỊ THẾ (chốt lời)
+            # SHORT: kiem tra thoat
+            if z < -STOPLOSS_Z:
                 state = 0
                 signals[i] = 0
-            elif z > STOPLOSS_Z:
-                # Spread tiếp tục diverge → CẮT LỖ
+            elif z < EXIT_Z:
                 state = 0
                 signals[i] = 0
             else:
-                signals[i] = -1  # Giữ vị thế
+                signals[i] = -1
 
-    merged["signal"] = signals
-
-    # Thống kê
-    n_long = (signals == 1).sum()
-    n_short = (signals == -1).sum()
-    n_neutral = (signals == 0).sum()
-    print(f"  [PAIRS] Tin hieu: LONG_SPREAD={n_long} | SHORT_SPREAD={n_short} | NEUTRAL={n_neutral}")
-
-    # ──────────────────────────────────────────────────────────────────
-    # BƯỚC 7: Map kết quả về DataFrame gốc
-    # ──────────────────────────────────────────────────────────────────
-    result_map = merged.set_index("_dt_key")[["spread", "z_score", "hedge_ratio",
-                                               "half_life", "hurst", "signal"]]
-    df = df.merge(result_map, left_on="_dt_key", right_index=True, how="left")
-    df["signal"] = df["signal"].fillna(0).astype(int)
-    df.drop(columns=["_dt_key"], inplace=True)
-
+    df["signal"] = signals
     return df
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PHẦN 3: KIỂM THỬ VỚI DỮ LIỆU THỰC
+# PHAN 3: KIEM THU VOI DU LIEU THUC (Chay: python strategy.py)
 # ═══════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
@@ -445,96 +320,63 @@ if __name__ == "__main__":
     api_key = os.getenv("QUANTVN_API_KEY", "")
 
     print("=" * 70)
-    print("  STATISTICAL ARBITRAGE — PAIRS TRADING STRATEGY")
+    print("  STATISTICAL ARBITRAGE — MEAN REVERSION STRATEGY")
     print("  Kiem thu voi du lieu crypto (Binance)")
     print("=" * 70)
 
-    # ── Bước 1: Khởi tạo QuantVN client ──
     print("\n[1/4] Khoi tao QuantVN client...")
     from quantvn.vn.data.utils import client
     client(apikey=api_key)
     print("  OK")
 
-    # ── Bước 2: Lấy dữ liệu sym_1 ──
-    # Tren platform quantvn.com: CHON "TRXUSDT" tu dropdown "Ma tai san"
-    sym_1 = "TRXUSDT"
-    print(f"\n[2/4] Tai du lieu {sym_1} tu Binance...")
+    # Tren platform: chon ETHUSDT hoac bat ky ma nao tu dropdown
+    sym = "ETHUSDT"
+    print(f"\n[2/4] Tai du lieu {sym}...")
     from quantvn.crypto.data import get_crypto_hist
-    df = get_crypto_hist(sym_1, interval="1h")
+    df = get_crypto_hist(sym, interval="1h")
 
     if df is None or df.empty:
-        print(f"  Khong lay duoc du lieu cho {sym_1}")
+        print(f"  Khong lay duoc du lieu cho {sym}")
         exit(1)
 
     print(f"  OK - {len(df)} nen 1H")
     print(f"  Tu: {df['Date'].iloc[0]} -> Den: {df['Date'].iloc[-1]}")
 
-    # ── Bước 3: Chạy chiến lược pairs trading ──
-    print(f"\n[3/4] Chay Pairs Trading: {sym_1} vs {PAIRED_SYMBOL}...")
+    print(f"\n[3/4] Chay chien luoc tren {sym}...")
     result = gen_position(df.copy())
 
-    # ── Bước 4: Tính PnL từ spread ──
-    print(f"\n[4/4] Ket qua backtest")
+    print(f"\n[4/4] Ket qua")
     print("=" * 70)
 
-    # Tính PnL từ SPREAD movement (đúng bản chất pairs trading)
-    valid = result.dropna(subset=["spread", "signal"]).copy()
-    valid["spread_return"] = valid["spread"].diff()  # Thay đổi spread mỗi nến
-    # Long spread (signal=1): lời khi spread TĂNG
-    # Short spread (signal=-1): lời khi spread GIẢM
-    valid["strategy_pnl"] = valid["signal"].shift(1) * valid["spread_return"]
-    valid["strategy_pnl"] = valid["strategy_pnl"].fillna(0)
-    valid["cumulative_pnl"] = valid["strategy_pnl"].cumsum()
+    total = len(result)
+    n_buy = (result["signal"] == 1).sum()
+    n_sell = (result["signal"] == -1).sum()
+    n_neutral = (result["signal"] == 0).sum()
 
-    total_pnl = valid["cumulative_pnl"].iloc[-1] if len(valid) > 0 else 0
-    avg_price = valid["Close"].mean() if len(valid) > 0 else 1
-    pnl_pct = (total_pnl / avg_price) * 100
+    print(f"  Tong nen:     {total:,}")
+    print(f"  MUA (1):      {n_buy:,} ({n_buy/total*100:.1f}%)")
+    print(f"  BAN (-1):     {n_sell:,} ({n_sell/total*100:.1f}%)")
+    print(f"  NEUTRAL (0):  {n_neutral:,} ({n_neutral/total*100:.1f}%)")
+    print(f"  Hurst:        {result['hurst'].iloc[0]:.4f}")
+    print(f"  Half-Life:    {result['half_life'].iloc[0]:.1f} nen")
 
-    # Tính fee estimate: mỗi round-trip = 4 legs (open+close × 2 symbols)
-    # Fee per leg = 0.1% (Binance spot taker)
-    # Fee per round-trip = 4 × 0.1% = 0.4%
-    n_trades = (valid["signal"].diff().fillna(0) != 0).sum()
-    round_trips = n_trades // 2
-    fee_total = round_trips * 4 * 0.001 * avg_price  # 4 legs × 0.1% × avg_price
-    fee_pct = (fee_total / avg_price) * 100 if avg_price > 0 else 0
+    changes = (result["signal"].diff().fillna(0) != 0).sum()
+    print(f"  Doi vi the:   {changes}")
 
-    # Các metrics
-    trade_pnls = []
-    in_trade = False
-    entry_pnl = 0
-    for _, row in valid.iterrows():
-        if not in_trade and row["signal"] != 0:
-            in_trade = True
-            entry_pnl = row["cumulative_pnl"]
-        elif in_trade and row["signal"] == 0:
-            trade_pnls.append(row["cumulative_pnl"] - entry_pnl)
-            in_trade = False
+    # PnL
+    result["ret"] = result["Close"].pct_change()
+    result["strat_ret"] = result["signal"].shift(1) * result["ret"]
+    cum = (1 + result["strat_ret"].fillna(0)).cumprod()
+    pnl = (cum.iloc[-1] - 1) * 100
+    bnh = ((result["Close"].iloc[-1] / result["Close"].iloc[0]) - 1) * 100
 
-    wins = [p for p in trade_pnls if p > 0]
-    losses = [p for p in trade_pnls if p <= 0]
-    win_rate = len(wins) / len(trade_pnls) * 100 if trade_pnls else 0
+    print(f"\n  PnL chien luoc: {pnl:.2f}%")
+    print(f"  Buy & Hold:     {bnh:.2f}%")
 
-    print(f"  Tong so nen:            {len(valid):,}")
-    print(f"  So round-trips:         {round_trips}")
-    print(f"  Win rate:               {win_rate:.1f}%")
-    if wins:
-        print(f"  Avg win (spread pts):   {np.mean(wins):.2f}")
-    if losses:
-        print(f"  Avg loss (spread pts):  {np.mean(losses):.2f}")
-
-    print(f"\n  -- PnL tu Spread --")
-    print(f"  Tong PnL spread:        {total_pnl:.2f} pts")
-    print(f"  Tong PnL (%):           {pnl_pct:.2f}%")
-    print(f"  So round-trips:         {round_trips}")
-    print(f"  Fee/round-trip:         0.4% (4 legs x 0.1%)")
-    print(f"  Tong fee uoc tinh:      {round_trips * 0.4:.1f}% (cong don {round_trips} trips x 0.4%)")
-
-    # Sample output
-    print(f"\n  -- Mau du lieu (5 dong cuoi) --")
-    cols = ["Date", "time", "Close", "spread", "z_score", "signal"]
-    cols_available = [c for c in cols if c in result.columns]
-    print(result[cols_available].tail().to_string(index=False))
+    print(f"\n  5 dong cuoi:")
+    cols = ["Date", "time", "Close", "z_score", "rsi_14", "signal"]
+    print(result[cols].tail().to_string(index=False))
 
     print("\n" + "=" * 70)
-    print("  OK - Chien luoc pairs trading hoan tat.")
+    print("  OK - Hoan tat.")
     print("=" * 70)
