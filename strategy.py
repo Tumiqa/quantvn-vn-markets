@@ -304,7 +304,7 @@ def gen_position(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 signals[i] = -1
 
-    df["signal"] = signals
+    df["position"] = signals
     return df
 
 
@@ -349,9 +349,9 @@ if __name__ == "__main__":
     print("=" * 70)
 
     total = len(result)
-    n_buy = (result["signal"] == 1).sum()
-    n_sell = (result["signal"] == -1).sum()
-    n_neutral = (result["signal"] == 0).sum()
+    n_buy = (result["position"] == 1).sum()
+    n_sell = (result["position"] == -1).sum()
+    n_neutral = (result["position"] == 0).sum()
 
     print(f"  Tong nen:     {total:,}")
     print(f"  MUA (1):      {n_buy:,} ({n_buy/total*100:.1f}%)")
@@ -360,12 +360,12 @@ if __name__ == "__main__":
     print(f"  Hurst:        {result['hurst'].iloc[0]:.4f}")
     print(f"  Half-Life:    {result['half_life'].iloc[0]:.1f} nen")
 
-    changes = (result["signal"].diff().fillna(0) != 0).sum()
+    changes = (result["position"].diff().fillna(0) != 0).sum()
     print(f"  Doi vi the:   {changes}")
 
     # PnL
     result["ret"] = result["Close"].pct_change()
-    result["strat_ret"] = result["signal"].shift(1) * result["ret"]
+    result["strat_ret"] = result["position"].shift(1) * result["ret"]
     cum = (1 + result["strat_ret"].fillna(0)).cumprod()
     pnl = (cum.iloc[-1] - 1) * 100
     bnh = ((result["Close"].iloc[-1] / result["Close"].iloc[0]) - 1) * 100
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     print(f"  Buy & Hold:     {bnh:.2f}%")
 
     print(f"\n  5 dong cuoi:")
-    cols = ["Date", "time", "Close", "z_score", "rsi_14", "signal"]
+    cols = ["Date", "time", "Close", "z_score", "rsi_14", "position"]
     print(result[cols].tail().to_string(index=False))
 
     print("\n" + "=" * 70)
