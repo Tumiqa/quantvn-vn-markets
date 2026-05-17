@@ -71,10 +71,11 @@ import pandas as pd
 # ═══════════════════════════════════════════════════════════════════════════
 # CẤU HÌNH CẶP GIAO DỊCH
 # ═══════════════════════════════════════════════════════════════════════════
-# Cặp mặc định: LTCUSDT / LINKUSDT
-# Chọn từ kết quả scan cointegration: p-value = 0.002 (rất mạnh)
-# Lý do: cả hai đều là altcoin lớn, tương quan cao, cointegrated mạnh
-PAIRED_SYMBOL = "LINKUSDT"
+# Cap mac dinh: TRXUSDT / BNBUSDT
+# Chon tu ket qua scan cointegration: p-value = 0.0004 (cuc manh)
+# Tren platform quantvn.com: CHON "TRXUSDT" tu dropdown "Ma tai san"
+# BNBUSDT se duoc load tu dong ben trong gen_position()
+PAIRED_SYMBOL = "BNBUSDT"
 PAIRED_INTERVAL = "1h"
 
 
@@ -455,7 +456,8 @@ if __name__ == "__main__":
     print("  OK")
 
     # ── Bước 2: Lấy dữ liệu sym_1 ──
-    sym_1 = "LTCUSDT"
+    # Tren platform quantvn.com: CHON "TRXUSDT" tu dropdown "Ma tai san"
+    sym_1 = "TRXUSDT"
     print(f"\n[2/4] Tai du lieu {sym_1} tu Binance...")
     from quantvn.crypto.data import get_crypto_hist
     df = get_crypto_hist(sym_1, interval="1h")
