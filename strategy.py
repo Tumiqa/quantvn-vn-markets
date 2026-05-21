@@ -8,47 +8,30 @@ def gen_position(df: pd.DataFrame) -> pd.DataFrame:
         df: DataFrame co cot ['Date','time','Open','High','Low','Close','volume']
     Output:
         df: DataFrame co them cot 'position' (-1,0,1)
-
-    Chien luoc Donchian Channel Breakout:
-        - Tinh kenh gia cao nhat/thap nhat trong 240 nen (20 gio)
-        - Long khi gia pha vo kenh tren (breakout len)
-        - Short khi gia pha vo kenh duoi (breakout xuong)
-        - Dao chieu khi breakout nguoc huong
-
-    Backtest VN30F1M (2018-2022):
-        PnL: +1,236 pts | Sharpe: 1.09 | MaxDD: 299 pts | 106 trades
     """
     df = df.copy()
 
-    # --- Tham so ---
-    period = 240  # 240 nen 5m = 20 gio giao dich (~4 ngay)
-
     # --- Donchian Channel ---
-    df["high_n"] = df["High"].rolling(window=period).max()
-    df["low_n"] = df["Low"].rolling(window=period).min()
-
-    # --- State Machine: Breakout Logic ---
+    period = 240
+    high_n = df["High"].rolling(window=period).max().shift(1).values
+    low_n = df["Low"].rolling(window=period).min().shift(1).values
+    close_vals = df["Close"].values
     n = len(df)
-    positions = np.zeros(n)
+    positions = np.zeros(n, dtype=int)
     state = 0
 
     for i in range(period, n):
-        prev_high = df["high_n"].iloc[i - 1]
-        prev_low = df["low_n"].iloc[i - 1]
-        close = df["Close"].iloc[i]
-
         if state == 0:
-            if close > prev_high:
-                state = 1   # Breakout len -> Long
-            elif close < prev_low:
-                state = -1  # Breakout xuong -> Short
+            if close_vals[i] > high_n[i]:
+                state = 1
+            elif close_vals[i] < low_n[i]:
+                state = -1
         elif state == 1:
-            if close < prev_low:
-                state = -1  # Dao chieu -> Short
+            if close_vals[i] < low_n[i]:
+                state = -1
         elif state == -1:
-            if close > prev_high:
-                state = 1   # Dao chieu -> Long
-
+            if close_vals[i] > high_n[i]:
+                state = 1
         positions[i] = state
 
     df["position"] = positions
