@@ -1,36 +1,16 @@
-BẢN THẢO TỰ ĐÁNH GIÁ CHIẾN LƯỢC (BƯỚC 7)
+TỰ ĐÁNH GIÁ CHIẾN LƯỢC GIAO DỊCH - BƯỚC 7
 
-1. Mô tả chiến lược
-Chiến lược mình xây dựng dựa trên nguyên lý bám đuổi xu hướng thuần túy (Trend Following) sử dụng kênh giá Donchian (Donchian Channel) với chu kỳ là 240 nến (tương đương khoảng 20 giờ giao dịch trên khung 5m). 
-Nguyên lý hoạt động khá đơn giản: Hệ thống sẽ theo dõi giá đóng cửa so với biên trên và biên dưới của kênh Donchian được dịch đi 1 phiên (shift 1). 
-- Khi giá đóng cửa vượt lên trên biên cao nhất của 240 nến trước đó (High Channel), hệ thống sẽ kích hoạt vị thế Mua (Long = 1) và giữ cho đến khi có tín hiệu ngược lại.
-- Khi giá đóng cửa giảm xuống dưới biên thấp nhất của 240 nến trước đó (Low Channel), hệ thống sẽ kích hoạt vị thế Bán (Short = -1).
-- Nếu giá dao động ở giữa mà chưa bứt phá ra ngoài biên lúc ban đầu, hệ thống sẽ đứng ngoài (vị thế = 0). Sau khi đã vào lệnh, vị thế được giữ liên tục và chỉ đảo chiều khi chạm biên đối diện.
+Mô tả chiến lược
+Chiến lược này mình xây dựng dựa trên nguyên lý bám đuổi xu hướng thuần túy sử dụng kênh giá Donchian với chu kỳ là 240 nến trên khung thời gian 5 phút. Về cơ bản thì logic hoạt động khá trực quan và đơn giản. Hệ thống sẽ liên tục theo dõi giá đóng cửa của nến hiện tại so với biên trên và biên dưới của kênh Donchian được dịch đi 1 phiên. Nếu giá đóng cửa vượt lên trên mức cao nhất của 240 nến trước đó thì hệ thống sẽ kích hoạt vị thế mua và giữ lệnh. Ngược lại, nếu giá giảm xuống dưới mức thấp nhất của chu kỳ này thì hệ thống sẽ mở vị thế bán. Khi chưa có tín hiệu bứt phá nào ở cả hai đầu thì hệ thống lựa chọn đứng ngoài thị trường. Sau khi đã vào lệnh thành công, vị thế sẽ được giữ liên tục và chỉ đảo chiều khi giá đóng cửa chạm vào biên đối diện.
 
-2. Các chỉ số đạt được
-Từ kết quả backtest trên dữ liệu lịch sử của mã phái sinh VN30F1M (giai đoạn từ năm 2018 đến 2022) với khung thời gian 5 phút, mình ghi nhận được một số kết quả thực tế như sau:
-*   Tổng lợi nhuận ròng (Net PnL): Đạt khoảng +1,236 điểm (đã khấu trừ thuế và phí giao dịch giả định là 0.1% mỗi lần đảo vị thế).
-*   Chỉ số Sharpe & Sortino: Đạt lần lượt là 1.09 và 1.60. Đây là mức hiệu suất ổn so với biến động của thị trường phái sinh Việt Nam.
-*   Mức sụt giảm tài khoản lớn nhất (Max Drawdown): Khoảng 299 điểm. Đây là mức sụt giảm tương đối lớn mà người dùng cần lưu ý khi sử dụng đòn bẩy cao.
-*   Tổng số lượng giao dịch: 106 lệnh trong suốt hơn 4 năm (trung bình chỉ khoảng 21 lệnh/năm). Tần suất giao dịch thấp giúp tối ưu hóa chi phí giao dịch cực kỳ tốt.
-*   Hiệu suất theo từng năm: 
-    - Năm 2018: +136 điểm
-    - Năm 2019: -2 điểm (năm này thị trường đi ngang rất khó chịu, hầu như hòa vốn)
-    - Năm 2020: +597 điểm (năm đại sóng tăng mạnh)
-    - Năm 2021: +299 điểm
-    - Năm 2022: +207 điểm (ăn được sóng giảm mạnh của thị trường)
+Các chỉ số đạt được
+Khi chạy thử nghiệm lịch sử trên dữ liệu của mã phái sinh VN30F1M từ năm 2018 đến hết năm 2022, mình thu được kết quả khá thực tế. Tổng lợi nhuận ròng sau khi đã trừ đi mức phí giao dịch giả định 0.1% mỗi lần đảo vị thế đạt khoảng 1,236 điểm. Chỉ số Sharpe đạt 1.09 và Sortino đạt 1.60, cho thấy hiệu suất tương đối ổn định so với mức biến động mạnh của thị trường phái sinh Việt Nam. Tuy nhiên, mức sụt giảm tài khoản lớn nhất lên tới 299 điểm, đây là con số khá lớn và cần quản trị vốn cẩn thận nếu dùng đòn bẩy. Tổng số lượng giao dịch trong hơn 4 năm qua chỉ có 106 lệnh, trung bình khoảng 21 lệnh mỗi năm. Tần suất giao dịch thấp thế này là một điểm cộng lớn giúp tiết kiệm chi phí thuế phí cho tài khoản. Về hiệu suất cụ thể từng năm thì ngoại trừ năm 2019 thị trường sideway khó chịu khiến hệ thống bị lỗ nhẹ khoảng 2 điểm, các năm còn lại đều có kết quả khả quan. Năm 2018 đem lại 136 điểm, năm đại sóng 2020 mang về 597 điểm, tiếp tục năm 2021 được 299 điểm và năm 2022 ăn theo sóng giảm mạnh thu về 207 điểm.
 
-3. Điểm mạnh
-- Cực kỳ đơn giản và rõ ràng: Logic không phức tạp, dễ dàng triển khai code mà không sợ bị lỗi hay timeout khi chạy thực tế (realtime) trên platform.
-- Hiệu quả cao khi có sóng lớn: Ở các năm xu hướng mạnh như 2020 và 2022, chiến lược bắt trend rất tốt và ăn trọn những con sóng dài mà không bị rơi hàng sớm.
-- Tiết kiệm chi phí: Tần suất vào lệnh rất ít (chỉ 106 lệnh trong 5 năm) giúp hạn chế tối đa việc bị hao hụt tài khoản do thuế và phí giao dịch của sàn.
+Điểm mạnh của chiến lược
+Ưu điểm lớn nhất của chiến lược này là sự đơn giản và rõ ràng. Do không sử dụng các thuật toán tính toán phức tạp nên code chạy rất mượt, tốc độ xử lý nhanh và không lo bị quá tải hay gặp lỗi timeout khi chạy trực tiếp trên platform. Bên cạnh đó, nhờ tính chất bám đuổi xu hướng nên hệ thống bắt sóng rất tốt ở những năm thị trường biến động mạnh như 2020 và 2022, giúp ăn trọn các con sóng dài mà không bị rơi hàng giữa chừng. Hơn nữa, việc số lượng giao dịch được tối ưu ở mức rất ít cũng giúp bảo vệ tài khoản khỏi việc bị bào mòn bởi chi phí giao dịch phát sinh.
 
-4. Điểm yếu & rủi ro
-- Gặp khó khăn lớn khi thị trường đi ngang (Sideways): Khi VN30F1M không có xu hướng rõ ràng, giá liên tục giật lên giật xuống qua hai biên của kênh Donchian sẽ làm hệ thống vào/ra lệnh liên tục và dính cắt lỗ ngắn (whipsaw).
-- Phản ứng chậm ở các vùng đỉnh đáy chữ V: Do dùng chu kỳ dài 240 nến nên khi xu hướng đảo chiều đột ngột, hệ thống sẽ mất một khoảng thời gian (và một phần lợi nhuận kha khá) mới kích hoạt lệnh đảo vị thế.
-- Rủi ro Gap giá qua đêm (Overnight Gap): Do thị trường phái sinh Việt Nam có phiên ATO sáng hôm sau chịu ảnh hưởng từ tin tức quốc tế đêm hôm trước, giá có thể nhảy gap bỏ qua điểm dừng lỗ trên lý thuyết của bot.
+Điểm yếu và rủi ro gặp phải
+Bên cạnh điểm mạnh thì chiến lược này cũng lộ rõ một số hạn chế. Điển hình nhất là khi thị trường rơi vào giai đoạn đi ngang không có xu hướng rõ ràng, giá cứ liên tục quét qua hai biên của kênh Donchian khiến hệ thống vào lệnh sai liên tục và dính cắt lỗ ngắn. Rủi ro tiếp theo là độ trễ lớn khi thị trường đảo chiều nhanh kiểu hình chữ V ở các vùng đỉnh đáy, hệ thống phải mất một khoảng thời gian và trả lại một phần lợi nhuận đáng kể trước khi kịp đóng vị thế. Ngoài ra, rủi ro nhảy gap giá qua đêm ở thị trường Việt Nam cũng cực kỳ nguy hiểm, tin tức xấu đêm hôm trước có thể khiến phiên ATO sáng hôm sau mở cửa vượt xa điểm dừng lỗ trên lý thuyết của bot.
 
-5. Đề xuất cải thiện
-- Thêm bộ lọc xu hướng/biến động: Tích hợp thêm các chỉ báo như ADX hoặc ATR để xác định thị trường đang có trend hay không trước khi kích hoạt lệnh breakout, nhằm giảm thiểu tối đa các lệnh lỗi trong vùng sideway.
-- Sử dụng Trailing Stop động: Bổ sung thêm cơ chế chốt lời/dừng lỗ động dựa trên ATR để khóa lợi nhuận sớm hơn khi đã có lời thay vì đợi giá chạm hẳn biên đối diện mới đảo vị thế.
-- Quản lý vị thế qua đêm: Nghiên cứu phương án đóng bớt vị thế trước phiên ATC nếu biên độ thị trường đang quá lớn nhằm hạn chế rủi ro Gap ATO ngày hôm sau.
+Đề xuất hướng cải thiện
+Để tối ưu hơn cho chiến lược này, hướng đi tiếp theo của mình là nghiên cứu tích hợp thêm các bộ lọc xu hướng hoặc biến động như ADX hay ATR để giúp hệ thống nhận diện tốt hơn các vùng đi ngang và hạn chế vào lệnh sai. Mình cũng muốn phát triển thêm cơ chế chốt lời hoặc cắt lỗ động dạng trailing stop dựa trên biến động thực tế thay vì cứ cứng nhắc đợi giá chạm biên đối diện mới đảo chiều. Cuối cùng, việc thiết lập thêm quy tắc quản lý vị thế qua đêm, ví dụ như chủ động hạ bớt tỷ trọng lệnh trước khi đóng cửa phiên ATC, cũng là điều cần thiết để giảm thiểu rủi ro từ những cú gap giá bất ngờ vào sáng hôm sau.
